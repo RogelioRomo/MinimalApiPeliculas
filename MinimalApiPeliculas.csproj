@@ -2,8 +2,14 @@
 
   <PropertyGroup>
     <TargetFramework>net10.0</TargetFramework>
+    <!-- Nos advierte sobre posibles valores nulos en codigo -->
     <Nullable>enable</Nullable>
+    <!-- Nos permite utilizar using implicitos para no tener que declararlos al momento de utilizar clases externas al archivo -->
     <ImplicitUsings>enable</ImplicitUsings>
   </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Swashbuckle.AspNetCore" Version="10.2.3" />
+  </ItemGroup>
 
 </Project>
