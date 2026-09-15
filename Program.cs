@@ -1,5 +1,7 @@
 using Microsoft.AspNetCore.Cors;
+using Microsoft.AspNetCore.OutputCaching;
 using MinimalApiPeliculas.Entidades;
+using MinimalApiPeliculas.Repositorios;
 
 var builder = WebApplication.CreateBuilder(args);
 var workingEnvironment = builder.Configuration.GetValue<string>("workingEnvironment");
@@ -30,6 +32,8 @@ builder.Services.AddOutputCache();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
+builder.Services.AddScoped<IRepositorioGeneros, RepositorioGeneros>();
+
 // FIN DE AREA DE LOS SERVICIOS
 
 var app = builder.Build();
@@ -48,28 +52,27 @@ app.UseOutputCache();
 
 app.MapGet("/", [EnableCors(policyName: "anyOrigin")] () => workingEnvironment);
 
-app.MapGet("/generos", () =>
+app.MapGet("/generos", async (IRepositorioGeneros repositorio) =>
 {
-  var generos = new List<Genero>
+  return await repositorio.ObtenerTodos();
+}).CacheOutput(c => c.Expire(TimeSpan.FromSeconds(60)).Tag("generos-get")); // usamos el output cache service aqui y usamos un tag para limpiar el cache donde se ejecute use el tag
+
+app.MapGet("/generos/{id:int}", async (int id, IRepositorioGeneros repositorio) =>
+{
+  var genero = await repositorio.ObtenerPorId(id);
+  if (genero is null)
   {
-    new Genero
-    {
-      Id = 1,
-      Nombre = "Drama"
-    },
-    new Genero
-    {
-      Id = 2,
-      Nombre = "Acción"
-    },
-    new Genero
-    {
-      Id = 3,
-      Nombre = "Comedia"
-    }
-  };
-  return generos;
-}).CacheOutput(c => c.Expire(TimeSpan.FromSeconds(15))); // usamos el output cache service aqui
+    return Results.NotFound();
+  }
+  return Results.Ok(genero);
+});
+
+app.MapPost("/generos", async (Genero genero, IRepositorioGeneros repositorioGeneros, IOutputCacheStore outputCacheStore) =>
+{
+  var id = await repositorioGeneros.CrearGenero(genero);
+  await outputCacheStore.EvictByTagAsync("generos-get", default); //limpiamos cache con tag cuando creamos un nuevo recurso
+  return TypedResults.Created($"/generos/{id}", genero); //recurso creado en ese URI
+});
 
 // FIN DE AREA DE MIDDLEWARES
 
