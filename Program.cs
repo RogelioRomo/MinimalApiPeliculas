@@ -36,6 +36,8 @@ builder.Services.AddSwaggerGen();
 
 builder.Services.AddScoped<IRepositorioGeneros, RepositorioGeneros>();
 
+builder.Services.AddAutoMapper(typeof(Program));
+
 // FIN DE AREA DE LOS SERVICIOS
 
 var app = builder.Build();
