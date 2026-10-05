@@ -1,5 +1,6 @@
 using System;
 using System.Data.Common;
+using System.Data;
 using Dapper;
 using Microsoft.Data.SqlClient;
 using MinimalApiPeliculas.Entidades;
@@ -20,10 +21,7 @@ public class RepositorioGeneros : IRepositorioGeneros
   {
     using (var connection = new SqlConnection(connectionString))
     {
-      var generos = await connection.QueryAsync<Genero>(@"
-      SELECT Id, Nombre
-      FROM Generos ORDER BY Nombre
-      ");
+      var generos = await connection.QueryAsync<Genero>("Generos_ObtenerTodos", commandType: CommandType.StoredProcedure);
       return generos.ToList();
     }
   }
@@ -32,10 +30,7 @@ public class RepositorioGeneros : IRepositorioGeneros
   {
     using (var connection = new SqlConnection(connectionString))
     {
-      var genero = await connection.QueryFirstOrDefaultAsync<Genero>(@"
-      SELECT Id, Nombre FROM Generos
-      WHERE Id = @Id
-      ", new { id });
+      var genero = await connection.QueryFirstOrDefaultAsync<Genero>("Generos_ObtenerPorId", new { id }, commandType: CommandType.StoredProcedure);
       return genero;
     }
   }
@@ -43,10 +38,7 @@ public class RepositorioGeneros : IRepositorioGeneros
   {
     using (var connection = new SqlConnection(connectionString))
     {
-      var id = await connection.QuerySingleAsync<int>(@"
-      INSERT INTO Generos (Nombre) VALUES (@Nombre);
-      SELECT SCOPE_IDENTITY();
-      ", genero);
+      var id = await connection.QuerySingleAsync<int>("Generos_CrearGenero", new { genero.Nombre }, commandType: CommandType.StoredProcedure);
       genero.Id = id;
       return id;
     }
@@ -56,12 +48,7 @@ public class RepositorioGeneros : IRepositorioGeneros
   {
     using (var connection = new SqlConnection(connectionString))
     {
-      var existe = await connection.QuerySingleAsync<bool>(@"
-      IF EXISTS (SELECT 1 FROM Generos WHERE Id = @Id)
-          SELECT 1
-      ELSE
-          SELECT 0
-      ", new { id });
+      var existe = await connection.QuerySingleAsync<bool>("Generos_Existe", new { id }, commandType: CommandType.StoredProcedure);
       return existe;
     }
   }
@@ -70,11 +57,7 @@ public class RepositorioGeneros : IRepositorioGeneros
   {
     using (var connection = new SqlConnection(connectionString))
     {
-      await connection.ExecuteAsync(@"
-      UPDATE Generos
-      SET Nombre = @Nombre
-      WHERE Id = @Id
-      ", genero);
+      await connection.ExecuteAsync("Generos_Actualizar", genero, commandType: CommandType.StoredProcedure);
     }
   }
 
@@ -82,10 +65,7 @@ public class RepositorioGeneros : IRepositorioGeneros
   {
     using (var connection = new SqlConnection(connectionString))
     {
-      await connection.ExecuteAsync(@"
-      DELETE Generos
-      WHERE Id = @Id
-      ", new { id });
+      await connection.ExecuteAsync("Generos_Borrar", new { id }, commandType: CommandType.StoredProcedure);
     }
   }
 
