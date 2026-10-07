@@ -4,6 +4,7 @@ using Microsoft.AspNetCore.OutputCaching;
 using MinimalApiPeliculas.Endpoints;
 using MinimalApiPeliculas.Entidades;
 using MinimalApiPeliculas.Repositorios;
+using MinimalApiPeliculas.Servicios;
 
 var builder = WebApplication.CreateBuilder(args);
 var workingEnvironment = builder.Configuration.GetValue<string>("workingEnvironment");
@@ -37,6 +38,11 @@ builder.Services.AddSwaggerGen();
 builder.Services.AddScoped<IRepositorioGeneros, RepositorioGeneros>();
 builder.Services.AddScoped<IRepositorioActores, RepositorioActores>();
 
+builder.Services.AddScoped<IAlmacenadorArchivos, AlmacenadorArchivosAzure>();
+// para archivos locales
+// builder.Services.AddScoped<IAlmacenadorArchivos, AlmacenadorArchivosLocal>();
+// builder.Services.AddHttpContextAccessor();
+
 builder.Services.AddAutoMapper(typeof(Program));
 
 // FIN DE AREA DE LOS SERVICIOS
@@ -51,6 +57,9 @@ if (builder.Environment.IsDevelopment())
   app.UseSwaggerUI();
 }
 
+// para poder usar los archivos estaticos de wwwroot
+// app.UseStaticFiles();
+
 app.UseCors();
 
 app.UseOutputCache();
@@ -58,6 +67,7 @@ app.UseOutputCache();
 app.MapGet("/", [EnableCors(policyName: "anyOrigin")] () => workingEnvironment);
 
 app.MapGroup("/generos").MapGeneros();
+app.MapGroup("/actores").MapActores();
 
 
 // FIN DE AREA DE MIDDLEWARES
