@@ -20,12 +20,16 @@ public static class ActoresEndpoints
     group.MapPost("/", Crear).DisableAntiforgery();
     group.MapGet("/", ObtenerTodos).CacheOutput(c => c.Expire(TimeSpan.FromSeconds(60)).Tag("actores-get"));
     group.MapGet("/{id:int}", ObtenerPorId);
+    group.MapGet("/obtenerPorNombre/{nombre}", ObtenerPorNombre);
+    group.MapPut("/{id:int}", Actualizar).DisableAntiforgery();
+    group.MapDelete("/{id:int}", Borrar);
     return group;
   }
 
-  static async Task<Ok<List<ActorDTO>>> ObtenerTodos(IRepositorioActores repositorio, IMapper mapper)
+  static async Task<Ok<List<ActorDTO>>> ObtenerTodos(IRepositorioActores repositorio, IMapper mapper, int pagina = 1, int recordsPorPagina = 10)
   {
-    var actores = await repositorio.ObtenerTodos();
+    var paginacion = new PaginacionDTO { Pagina = pagina, RecordsPorPagina = recordsPorPagina };
+    var actores = await repositorio.ObtenerTodos(paginacion);
     var actoresDTO = mapper.Map<List<ActorDTO>>(actores);
     return TypedResults.Ok(actoresDTO);
   }
@@ -43,6 +47,13 @@ public static class ActoresEndpoints
     return TypedResults.Ok(actorDTO);
   }
 
+  static async Task<Ok<List<ActorDTO>>> ObtenerPorNombre(string nombre, IRepositorioActores repositorio, IMapper mapper)
+  {
+    var actores = await repositorio.ObtenerPorNombre(nombre);
+    var actoresDTO = mapper.Map<List<ActorDTO>>(actores);
+    return TypedResults.Ok(actoresDTO);
+  }
+
   static async Task<Created<ActorDTO>> Crear([FromForm] CrearActorDTO crearActorDTO, IRepositorioActores repositorio, IOutputCacheStore outputCacheStore, IMapper mapper, IAlmacenadorArchivos almacenadorArchivos)
   {
     var actor = mapper.Map<Actor>(crearActorDTO);
@@ -57,5 +68,44 @@ public static class ActoresEndpoints
     await outputCacheStore.EvictByTagAsync("actores-get", default);
     var actorDTO = mapper.Map<ActorDTO>(actor);
     return TypedResults.Created($"/actores/{id}", actorDTO);
+  }
+
+  static async Task<Results<NoContent, NotFound>> Actualizar(int id, [FromForm] CrearActorDTO crearActorDTO, IRepositorioActores repositorio, IAlmacenadorArchivos almacenadorArchivos, IOutputCacheStore outputCacheStore, IMapper mapper)
+  {
+    var actorDB = await repositorio.ObtenerPorId(id);
+
+    if (actorDB is null)
+    {
+      return TypedResults.NotFound();
+    }
+
+    var actorParaActualizar = mapper.Map<Actor>(crearActorDTO);
+    actorParaActualizar.Id = id;
+    actorParaActualizar.Foto = actorDB.Foto;
+
+    if (crearActorDTO.Foto is not null)
+    {
+      var url = await almacenadorArchivos.Editar(actorParaActualizar.Foto, contenedor, crearActorDTO.Foto);
+      actorParaActualizar.Foto = url;
+    }
+
+    await repositorio.Actualizar(actorParaActualizar);
+    await outputCacheStore.EvictByTagAsync("actores-get", default);
+    return TypedResults.NoContent();
+  }
+
+  static async Task<Results<NoContent, NotFound>> Borrar(int id, IRepositorioActores repositorio, IOutputCacheStore outputCacheStore, IAlmacenadorArchivos almacenadorArchivos)
+  {
+    var actorDB = await repositorio.ObtenerPorId(id);
+
+    if (actorDB is null)
+    {
+      return TypedResults.NotFound();
+    }
+
+    await repositorio.Borrar(id);
+    await almacenadorArchivos.Borrar(actorDB.Foto, contenedor);
+    await outputCacheStore.EvictByTagAsync("actores-get", default);
+    return TypedResults.NoContent();
   }
 }

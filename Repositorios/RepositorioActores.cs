@@ -2,6 +2,7 @@ using System;
 using System.Data;
 using Dapper;
 using Microsoft.Data.SqlClient;
+using MinimalApiPeliculas.DTOs;
 using MinimalApiPeliculas.Entidades;
 
 namespace MinimalApiPeliculas.Repositorios;
@@ -9,16 +10,24 @@ namespace MinimalApiPeliculas.Repositorios;
 public class RepositorioActores : IRepositorioActores
 {
   private readonly string connectionString;
-  public RepositorioActores(IConfiguration configuration)
+  private readonly HttpContext httpContext;
+
+  public RepositorioActores(IConfiguration configuration, IHttpContextAccessor httpContextAccessor)
   {
     connectionString = configuration.GetConnectionString("DefaultConnection")!;
+    httpContext = httpContextAccessor.HttpContext!;
   }
 
-  public async Task<List<Actor>> ObtenerTodos()
+  public async Task<List<Actor>> ObtenerTodos(PaginacionDTO paginacionDTO)
   {
     using (var connection = new SqlConnection(connectionString))
     {
-      var actores = await connection.QueryAsync<Actor>("Actores_ObtenerTodos", commandType: CommandType.StoredProcedure);
+      var actores = await connection.QueryAsync<Actor>("Actores_ObtenerTodos", new { paginacionDTO.Pagina, paginacionDTO.RecordsPorPagina }, commandType: CommandType.StoredProcedure);
+
+      var cantidadActores = await connection.QuerySingleAsync<int>("Actores_Cantidad", commandType: CommandType.StoredProcedure);
+
+      httpContext.Response.Headers.Append("cantidadTotalRegistros", cantidadActores.ToString());
+
       return actores.ToList();
     }
   }
@@ -29,6 +38,15 @@ public class RepositorioActores : IRepositorioActores
     {
       var actor = await connection.QueryFirstOrDefaultAsync<Actor>("Actores_ObtenerPorId", new { id }, commandType: CommandType.StoredProcedure);
       return actor;
+    }
+  }
+
+  public async Task<List<Actor>> ObtenerPorNombre(string nombre)
+  {
+    using (var connection = new SqlConnection(connectionString))
+    {
+      var actores = await connection.QueryAsync<Actor>("Actores_ObtenerPorNombre", new { nombre }, commandType: CommandType.StoredProcedure);
+      return actores.ToList();
     }
   }
 
