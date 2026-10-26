@@ -12,4 +12,5 @@ public class Pelicula
   public DateTime FechaLanzamiento { get; set; }
 
   public string? Poster { get; set; }
+  public List<Comentario> Comentarios { get; set; } = new List<Comentario>();
 }

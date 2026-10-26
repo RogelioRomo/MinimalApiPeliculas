@@ -36,8 +36,13 @@ public class RepositorioPeliculas : IRepositorioPeliculas
   {
     using (var connection = new SqlConnection(connectionString))
     {
-      var pelicula = await connection.QueryFirstOrDefaultAsync<Pelicula>("Peliculas_ObtenerPorId", new { id }, commandType: CommandType.StoredProcedure);
-      return pelicula;
+      using (var multi = await connection.QueryMultipleAsync("Peliculas_ObtenerPorId", new { id }, commandType: CommandType.StoredProcedure))
+      {
+        var pelicula = await multi.ReadFirstAsync<Pelicula>();
+        var comentarios = await multi.ReadAsync<Comentario>();
+        pelicula.Comentarios = comentarios.ToList();
+        return pelicula;
+      }
     }
   }
 
@@ -81,6 +86,22 @@ public class RepositorioPeliculas : IRepositorioPeliculas
     using (var connection = new SqlConnection(connectionString))
     {
       await connection.ExecuteAsync("Peliculas_Borrar", new { id }, commandType: CommandType.StoredProcedure);
+    }
+  }
+
+  public async Task AsignarGeneros(int id, List<int> generosIds)
+  {
+    var dt = new DataTable();
+    dt.Columns.Add("Id", typeof(int));
+
+    foreach (var generoId in generosIds)
+    {
+      dt.Rows.Add(generoId);
+    }
+
+    using (var connection = new SqlConnection(connectionString))
+    {
+      await connection.ExecuteAsync("Peliculas_AsignarGeneros", new { peliculaId = id, generosIds = dt }, commandType: CommandType.StoredProcedure);
     }
   }
 }

@@ -53,6 +53,23 @@ public class RepositorioGeneros : IRepositorioGeneros
     }
   }
 
+  public async Task<List<int>> Existen(List<int> ids)
+  {
+    var dt = new DataTable();
+    dt.Columns.Add("Id", typeof(int));
+
+    foreach (var id in ids)
+    {
+      dt.Rows.Add(id);
+    }
+
+    using (var connection = new SqlConnection(connectionString))
+    {
+      var idsGenerosExistentes = await connection.QueryAsync<int>("Generos_ObtenerVariosPorId", new { generosIds = dt }, commandType: CommandType.StoredProcedure);
+      return idsGenerosExistentes.ToList();
+    }
+  }
+
   public async Task Actualizar(Genero genero)
   {
     using (var connection = new SqlConnection(connectionString))

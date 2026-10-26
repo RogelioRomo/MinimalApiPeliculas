@@ -38,6 +38,7 @@ builder.Services.AddSwaggerGen();
 builder.Services.AddScoped<IRepositorioGeneros, RepositorioGeneros>();
 builder.Services.AddScoped<IRepositorioActores, RepositorioActores>();
 builder.Services.AddScoped<IRepositorioPeliculas, RepositorioPeliculas>();
+builder.Services.AddScoped<IRepositorioComentarios, RepositorioComentarios>();
 
 builder.Services.AddScoped<IAlmacenadorArchivos, AlmacenadorArchivosAzure>();
 // para archivos locales
@@ -71,6 +72,7 @@ app.MapGet("/", [EnableCors(policyName: "anyOrigin")] () => workingEnvironment);
 app.MapGroup("/generos").MapGeneros();
 app.MapGroup("/actores").MapActores();
 app.MapGroup("/peliculas").MapPeliculas();
+app.MapGroup("/pelicula/{peliculaId:int}/comentarios").MapComentarios();
 
 
 // FIN DE AREA DE MIDDLEWARES

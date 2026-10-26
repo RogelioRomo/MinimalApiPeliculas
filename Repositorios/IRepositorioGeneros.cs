@@ -9,6 +9,7 @@ public interface IRepositorioGeneros
   Task<Genero?> ObtenerPorId(int id);
   Task<List<Genero>> ObtenerTodos();
   Task<bool> Existe(int id);
+  Task<List<int>> Existen(List<int> ids);
   Task Actualizar(Genero genero);
   Task Borrar(int id);
 }
